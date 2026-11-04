@@ -1,0 +1,12 @@
+---
+title: "Exploratory Data Analysis"
+format: html
+editor: visual
+---
+
+```{r}
+landscape_data <- read.csv("garden_landscape.csv")
+local_data <- read.csv("garden_local.csv")
+macro_aps_data <- read.csv("macro_aps.csv")
+soil_data <- read.csv("soil_health.csv")
+```

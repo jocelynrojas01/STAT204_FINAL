@@ -1,2 +1,7 @@
 # STAT204_FINAL
-REPO for final project for STAT 204
+
+REPO for STAT 204 Final Project
+Team: Carmen and Jocelyn
+
+
+
