@@ -52,18 +52,13 @@ macro_count <- macro_clean %>%
   group_by(sample_id, site, microhabitat) %>%
  filter(class %in% c("Diplopoda", "Insecta", "Malacostraca", "Symphyla", "Chilopoda")) %>%
   count(class)
-  
-
-  macro_count <- macro_clean %>%
-  group_by(sample_id, site, microhabitat) %>%
-  summarise(row_count = n())
-
 
 ## new table with total number of arthropods in each microhabitat
 macro_count_2 <- macro_count %>%
-  group_by(site, microhabitat) %>%
+  group_by(sample_id) %>%
   summarize(
-    count_macro = sum(n)
+    n_class = n(),
+    total = sum(n)
   )
 
 ## attempt to merge arthropod count data to avg_soil data
@@ -72,6 +67,6 @@ macro_count_2 <- macro_count %>%
 soil_aps <- cbind(avg_soil, count_aps = macro_count_2$count_macro)
 
 
-soil_aps2 <- left_join(soil_data, macro_count, by = "sample_id")
+soil_aps2 <- left_join(soil_data, macro_count_2, by = "sample_id")
   
 ```
