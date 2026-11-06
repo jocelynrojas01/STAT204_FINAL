@@ -45,12 +45,19 @@ macro_clean <- soil_aps %>%
 ## to check number of unique observations in class column
 unique(macro_aps_data$class)
 
+
 ## counts number of arthrpods in each class
 ## ??????? - this removed microhabitats with no observations 
 macro_count <- macro_clean %>%
   group_by(sample_id, site, microhabitat) %>%
-  filter(class %in% c("Diplopoda", "Insecta", "Malacostraca", "Symphyla", "Chilopoda"))%>%
+ filter(class %in% c("Diplopoda", "Insecta", "Malacostraca", "Symphyla", "Chilopoda")) %>%
   count(class)
+  
+
+  macro_count <- macro_clean %>%
+  group_by(sample_id, site, microhabitat) %>%
+  summarise(row_count = n())
+
 
 ## new table with total number of arthropods in each microhabitat
 macro_count_2 <- macro_count %>%
@@ -63,5 +70,8 @@ macro_count_2 <- macro_count %>%
 ## ???? - bc not the same number of rows
 ## tried using left join but problem with same column name types
 soil_aps <- cbind(avg_soil, count_aps = macro_count_2$count_macro)
+
+
+soil_aps2 <- left_join(soil_data, macro_count, by = "sample_id")
   
 ```
