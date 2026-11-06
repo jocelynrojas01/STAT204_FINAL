@@ -61,12 +61,6 @@ macro_count_2 <- macro_count %>%
     total = sum(n)
   )
 
-## attempt to merge arthropod count data to avg_soil data
-## ???? - bc not the same number of rows
-## tried using left join but problem with same column name types
-soil_aps <- cbind(avg_soil, count_aps = macro_count_2$count_macro)
-
-
 soil_aps2 <- left_join(soil_data, macro_count_2, by = "sample_id")
   
 ```
