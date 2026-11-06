@@ -4,6 +4,8 @@ format: html
 editor: visual
 ---
 
+### Loading Data Tables
+
 ```{r}
 landscape_data <- read.csv("garden_landscape.csv")
 local_data <- read.csv("garden_local.csv")
@@ -11,12 +13,16 @@ macro_aps_data <- read.csv("macro_aps.csv")
 soil_data <- read.csv("soil_health.csv")
 ```
 
-## Cleaning Data Frame
+### Loading Relevant Packages
 
 ```{r}
 library(tidyverse)
+```
 
-## to edit typo
+### Cleaning and Merging Data Tables
+
+```{r}
+## to edit the spelling of a few observations in the "class" column in arthropod data sheet
 macro_aps_data <- macro_aps_data %>%
   mutate(class = recode(class,
                         "Diplopada" = "Diplopoda"))
@@ -34,7 +40,6 @@ avg_soil <- soil_data %>%
   )
 
 ## merged soil and arthropod data using soil_data file (bc it contains sample_id column)
-
 soil_aps <- soil_data %>%
   left_join(macro_aps_data, by = "sample_id")
 
@@ -42,7 +47,7 @@ soil_aps <- soil_data %>%
 macro_clean <- soil_aps %>%
   select(sample_id, site, microhabitat, class, order, family, emi_score, juvenile)
 
-## to check number of unique observations in class column
+## to check number of unique observations in "class" column
 unique(macro_aps_data$class)
 
 
@@ -50,7 +55,7 @@ unique(macro_aps_data$class)
 ## ??????? - this removed microhabitats with no observations 
 macro_count <- macro_clean %>%
   group_by(sample_id, site, microhabitat) %>%
- filter(class %in% c("Diplopoda", "Insecta", "Malacostraca", "Symphyla", "Chilopoda")) %>%
+  filter(class %in% c("Diplopoda", "Insecta", "Malacostraca", "Symphyla", "Chilopoda")) %>%
   count(class)
 
 ## new table with total number of arthropods in each microhabitat
