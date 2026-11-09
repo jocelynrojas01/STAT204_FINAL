@@ -27,18 +27,6 @@ macro_aps_data <- macro_aps_data %>%
   mutate(class = recode(class,
                         "Diplopada" = "Diplopoda"))
 
-## avg inorg N values grouped by site and microhabitat (2 observations per garden)
-## creates new table without sample_id column
-avg_soil <- soil_data %>%
-  group_by(site, microhabitat) %>%
-  summarise(
-    avg_no3 = mean(no3_ug_g, na.rm = TRUE),
-    avg_nh4 = mean(nh4_ug_g, na.rm = TRUE),
-    avg_cbh = mean(cbh_mmol_g_h, na.rm = TRUE),
-    avg_bd = mean(bulk_density, na.rm = TRUE),
-    .groups = "drop"
-  )
-
 ## merged soil and arthropod data using soil_data file (bc it contains sample_id column)
 soil_aps <- soil_data %>%
   left_join(macro_aps_data, by = "sample_id")
@@ -52,13 +40,14 @@ unique(macro_aps_data$class)
 
 
 ## counts number of arthrpods in each class
-## ??????? - this removed microhabitats with no observations 
+## this removed samples with no observations (no arthropods)
 macro_count <- macro_clean %>%
   group_by(sample_id, site, microhabitat) %>%
   filter(class %in% c("Diplopoda", "Insecta", "Malacostraca", "Symphyla", "Chilopoda")) %>%
   count(class)
 
-## new table with total number of arthropods in each microhabitat
+## new arthropod data with total number of arthropods per sample
+## and total number of class types per sample
 macro_count_2 <- macro_count %>%
   group_by(sample_id) %>%
   summarize(
@@ -66,6 +55,32 @@ macro_count_2 <- macro_count %>%
     total = sum(n)
   )
 
-soil_aps2 <- left_join(soil_data, macro_count_2, by = "sample_id")
+## final merged table containing soil and arthropod data
+soil_aps_clean <- left_join(soil_data, macro_count_2, by = "sample_id")
+
+## landscape_soil_aps - merged data table with landscape and soil_aps data
+local_soil_aps <- left_join(soil_aps_clean, local_data, by = "site")
+
+## local_soil_aps - merged data table with local agrden and soil 
+landscape_soil_aps <- left_join(soil_aps_clean, landscape_data, by = "site")
   
+
+## final table
+soil <- left_join(local_soil_aps, landscape_data, by = "site")
+```
+
+### Exploratory Code (data cleaning)
+
+```{r}
+## avg inorg N values grouped by site and microhabitat (2 observations per garden)
+## creates new table without sample_id column
+avg_soil <- soil_data %>%
+  group_by(site, microhabitat) %>%
+  summarise(
+    avg_no3 = mean(no3_ug_g, na.rm = TRUE),
+    avg_nh4 = mean(nh4_ug_g, na.rm = TRUE),
+    avg_cbh = mean(cbh_mmol_g_h, na.rm = TRUE),
+    avg_bd = mean(bulk_density, na.rm = TRUE),
+    .groups = "drop"
+  )
 ```
