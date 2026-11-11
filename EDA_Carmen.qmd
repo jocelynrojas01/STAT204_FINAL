@@ -105,10 +105,159 @@ soil %>%
     ggplot(., aes(x = herbspp)) + geom_dotplot()
 # The dotplot shows us that most of the garden meaures of herbspp are clustered on the lower half of the distribution, while a few sit with higher values. So a few gardens might be demonstrating higher plant diversity.
 
+
 summary(soil$numtreeshrub) # really variable --> it might be that some garden samples had very few plants. Will need to look at the effect of microhabitat as well
 soil %>%
     group_by(site) %>%
     summarize(numtreeshrub = first(numtreeshrub)) %>%
     ggplot(., aes(x = numtreeshrub)) + geom_dotplot()
 # numtreeshrub seems to be a little more normally distributed than herbspp, though not by much. There is definitely still a little bit of clustering on the left half of the dsitribution, though fewer high extreme values.
+
+soil %>%
+    group_by(site) %>%
+    summarize(veght = first(veght)) %>%
+    ggplot(., aes(x = veght)) + geom_dotplot()
+# The dotplot shows us that vegetation height actually looks pretty uniformly distributed, which is different from the previous two variables.
+```
+
+```{r}
+# Are any of these variables correlated with each other?
+soil %>%
+    group_by(site) %>%
+    summarize(herbspp = first(herbspp), numtreeshrub = first(numtreeshrub)) %>% 
+    {cor(.$herbspp, .$numtreeshrub)} # R = 0.08
+
+soil %>%
+    group_by(site) %>%
+    summarize(herbspp = first(herbspp), veght = first(veght)) %>% 
+    {cor(.$herbspp, .$veght)} # R = 0.46
+
+soil %>%
+    group_by(site) %>%
+    summarize(numtreeshrub = first(numtreeshrub), veght = first(veght)) %>% 
+    {cor(.$numtreeshrub, .$veght)} # R = 0.27
+
+# number of plant species and vegetation height seem to be the most correlated among these 3 variables, though it is not necessarily a strong relationship.
+```
+
+# How are these garden characteristics related to soil health?
+
+```{r}
+# Herbspp and soil health
+soil %>%
+    group_by(site) %>%
+    summarize(herbspp = first(herbspp), 
+    meanNH4 = mean(nh4_ug_g),
+    meanNO3 = mean(no3_ug_g), 
+    .groups = "drop") %>%
+    ggplot(., aes(x = herbspp)) + 
+    labs(y = "Micrograms per Gram of Soil") +
+    geom_point(aes(y = meanNH4, color = "Ammonium"), size = 1) +
+    geom_point(aes(y = meanNO3, color = "Nitrate"), size = 1)
+
+soil %>% # diff for CBH, because it's different units
+    group_by(site) %>%
+    summarize(herbspp = first(herbspp), 
+    meanCBH = mean(cbh_mmol_g_h), 
+    .groups = "drop") %>%
+    ggplot(., aes(x = herbspp)) + 
+    labs(y = "mmols per g of soil p hr") +
+    geom_point(aes(y = meanCBH, color = "CBH"), size = 1)
+```
+
+```{r}
+# numtreeshrub and soil health
+soil %>%
+    group_by(site) %>%
+    summarize(numtreeshrub = first(numtreeshrub), 
+    meanNH4 = mean(nh4_ug_g),
+    meanNO3 = mean(no3_ug_g), 
+    .groups = "drop") %>%
+    ggplot(., aes(x = numtreeshrub)) + 
+    labs(y = "Micrograms per Gram of Soil") +
+    geom_point(aes(y = meanNH4, color = "Ammonium"), size = 1) +
+    geom_point(aes(y = meanNO3, color = "Nitrate"), size = 1)
+
+soil %>% # diff for CBH, because it's different units
+    group_by(site) %>%
+    summarize(numtreeshrub = first(numtreeshrub), 
+    meanCBH = mean(cbh_mmol_g_h), 
+    .groups = "drop") %>%
+    ggplot(., aes(x = numtreeshrub)) + 
+    labs(y = "mmols per g of soil p hr") +
+    geom_point(aes(y = meanCBH, color = "CBH"), size = 1)
+```
+
+```{r}
+# vegetation height and soil health
+soil %>%
+    group_by(site) %>%
+    summarize(veght = first(veght), 
+    meanNH4 = mean(nh4_ug_g),
+    meanNO3 = mean(no3_ug_g), 
+    .groups = "drop") %>%
+    ggplot(., aes(x = veght)) + 
+    labs(y = "Micrograms per Gram of Soil") +
+    geom_point(aes(y = meanNH4, color = "Ammonium"), size = 1) +
+    geom_point(aes(y = meanNO3, color = "Nitrate"), size = 1)
+
+soil %>% # diff for CBH, because it's different units
+    group_by(site) %>%
+    summarize(veght = first(veght), 
+    meanCBH = mean(cbh_mmol_g_h), 
+    .groups = "drop") %>%
+    ggplot(., aes(x = veght)) + 
+    labs(y = "mmols per g of soil p hr") +
+    geom_point(aes(y = meanCBH, color = "CBH"), size = 1)
+```
+
+# Garden characteristic measures vs. total aps count per garden
+
+```{r}
+# relationship between herbspp and total aps count, sorted by garden
+soil %>% 
+    group_by(site, microhabitat) %>%
+    summarize(garden_apscount = sum(total, na.rm = TRUE),
+    herbspp = first(herbspp)) %>% 
+    ggplot(aes(x = herbspp, y = garden_apscount, color = microhabitat)) +
+    geom_point() +
+    geom_abline()
+
+soil %>% 
+    group_by(site) %>%
+    summarize(garden_apscount = sum(total, na.rm = TRUE),
+    herbspp = first(herbspp)) %>% 
+ {cor(.$herbspp, .$garden_apscount)} # R = -0.14
+```
+
+```{r}
+# rls between numtreeshrub and aps count
+soil %>% 
+    group_by(site, microhabitat) %>%
+    summarize(garden_apscount = sum(total, na.rm = TRUE),
+    numtreeshrub = first(numtreeshrub)) %>% 
+    ggplot(aes(x = numtreeshrub, y = garden_apscount, color = microhabitat)) +
+    geom_point() 
+
+soil %>% 
+    group_by(site) %>%
+    summarize(garden_apscount = sum(total, na.rm = TRUE),
+    numtreeshrub = first(numtreeshrub)) %>% 
+ {cor(.$numtreeshrub, .$garden_apscount)} # R = -0.16
+```
+
+```{r}
+# rls between veght and aps count
+soil %>% 
+    group_by(site, microhabitat) %>%
+    summarize(garden_apscount = sum(total, na.rm = TRUE),
+    veght = first(veght)) %>% 
+    ggplot(aes(x = veght, y = garden_apscount, color = microhabitat)) +
+    geom_point() 
+
+soil %>% 
+    group_by(site) %>%
+    summarize(garden_apscount = sum(total, na.rm = TRUE),
+    veght = first(veght)) %>% 
+ {cor(.$veght, .$garden_apscount)} # R = -0.03
 ```
