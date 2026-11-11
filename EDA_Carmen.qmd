@@ -5,5 +5,110 @@ editor: visual
 ---
 
 ```{r}
+library(tidyverse)
+```
 
+# Looking at Land Cover Class Variables
+
+```{r}
+# Want to condense the land cover classes to urban vs. green space (which includes open, natural, and agricultural). This is because we just want to compare response variables between urban and non-urban surroundings of gardens.
+soil <- soil %>%
+    mutate(green250m = open250m + natural250m + ag250m)
+```
+
+```{r}
+soil %>%
+    group_by(site) %>%
+    summarize(urban250m = first(urban250m)) %>% 
+    ggplot(data = ., aes(x = site, y = urban250m)) + geom_col()
+# This makes a bar chart that shows us the percentage of urban land cover surrounding each of the 15 gardens. Forge, MIIS, and Trescony all have 100% urban land cover, while the others indicate that they have some percentage of green space as surrounding land cover.
+```
+
+
+```{r}
+# Is there a relationship between percentage of urban land cover and aps count? (looking at total aps count across gardens)
+soil %>% 
+    group_by(site) %>%
+    summarize(garden_apscount = sum(total, na.rm = TRUE),
+    urban250m = first(urban250m)) %>% 
+    ggplot(aes(x = urban250m, y = garden_apscount)) +
+    geom_point() +
+    geom_abline()
+# Made a plot with percentage of urban land cover on the x-axis, and total arthropod count per garden on the y-axis. Added an abline to see any trend. There is one point where the total arthopod count is very high, which seems to be affecting the trend line. Might replot with this garden removed ()
+
+soil %>% 
+    group_by(site) %>%
+    summarize(garden_apscount = sum(total, na.rm = TRUE),
+    urban250m = first(urban250m)) %>% 
+    filter(!(site == "Forge")) %>%
+    ggplot(aes(x = urban250m, y = garden_apscount)) +
+    geom_point() +
+    geom_abline()
+# AB line is out of range because of the Forge data but looking at this new plot I can guess that there isn't really a significant trend just from viewing the data plotted out like this.
+```
+
+```{r}
+# Is there a relationship between percentage of green land cover and aps count? (looking at total aps count across gardens)
+soil %>% 
+    group_by(site) %>%
+    summarize(garden_apscount = sum(total, na.rm = TRUE),
+    green250m = first(green250m)) %>% 
+    ggplot(aes(x = green250m, y = garden_apscount)) +
+    geom_point() +
+    geom_abline()
+
+# It sort of just seems like the inverse of the relationship between urban land cover and aps count, again we have that outlier with 0 green cover and lots of arthropods. 
+```
+
+* Honestly don't think there's really anything significant in land cover class vs. total aps count per garden, at least just looking across sites. 
+
+# Is there a relationship between percentage of urban land cover and soil health indicators?
+Soil health indicators are ammonium (NH4), nitrate (NO3), and CBH enzyme.
+
+```{r}
+# plotting percentage of urban land cover against NH4 measurements
+soil %>%
+    group_by(site, microhabitat) %>%
+    summarize(urban250m = first(urban250m), meanNH4 = mean(nh4_ug_g, na.rm = TRUE)) %>%
+    ggplot(aes(x = urban250m, y = meanNH4, color = microhabitat)) + geom_point()
+# NH4 in the path microhabitats seem to be generally higher than the measurements in the garden bed, though both microhabitats seem to have a slightly positive relationship between % of urban land cover and mean NH4
+
+# same plot, but looking at NO3
+soil %>%
+    group_by(site, microhabitat) %>%
+    summarize(urban250m = first(urban250m), meanNO3 = mean(no3_ug_g, na.rm = TRUE), .groups = "drop") %>%
+    ggplot(aes(x = urban250m, y = meanNO3, color = microhabitat)) + geom_point()
+# There doesn't seem to be any super strong relationship, perhaps a slight positive correlation
+
+# same plot, but looking at CBH
+soil %>%
+    group_by(site, microhabitat) %>%
+    summarize(urban250m = first(urban250m), meanCBH = mean(cbh_mmol_g_h, na.rm = TRUE), .groups = "drop") %>%
+    ggplot(aes(x = urban250m, y = meanCBH, color = microhabitat)) + geom_point()
+# Same kind of spread, not really any super strong relationship
+```
+
+* Just from this quick EDA, there doesn't seem to be a really strong relationship between percentage of urban land cover and any of the soil health indicators.
+
+# Exploring garden characteristic variables
+* Specifically, herbspp, numtreeshrub, and veght
+herbspp: # of plant species recorded in a sample plot (proxy for plant diversity/richness)
+numtreeshrub: total # of tree and shrub individuals in sample plot (proxy for plant abundance)
+veght: average height (cm) of herbaceous vegetation within a sample plot
+
+```{r}
+summary(soil$herbspp)
+soil %>%
+    group_by(site) %>%
+    summarize(herbspp = first(herbspp)) %>%
+    head(., 15) %>%
+    ggplot(., aes(x = herbspp)) + geom_dotplot()
+# The dotplot shows us that most of the garden meaures of herbspp are clustered on the lower half of the distribution, while a few sit with higher values. So a few gardens might be demonstrating higher plant diversity.
+
+summary(soil$numtreeshrub) # really variable --> it might be that some garden samples had very few plants. Will need to look at the effect of microhabitat as well
+soil %>%
+    group_by(site) %>%
+    summarize(numtreeshrub = first(numtreeshrub)) %>%
+    ggplot(., aes(x = numtreeshrub)) + geom_dotplot()
+# numtreeshrub seems to be a little more normally distributed than herbspp, though not by much. There is definitely still a little bit of clustering on the left half of the dsitribution, though fewer high extreme values.
 ```
