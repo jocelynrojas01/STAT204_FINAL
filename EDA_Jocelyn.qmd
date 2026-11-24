@@ -31,23 +31,23 @@ head(soil)
 
 *Ground Cover and Soil Arthropods*
 
--   Does ground cover vary across garden sites?
+- Does ground cover vary across garden sites?
 
--   Does the average ground cover affect soil arthropod diversity across garden sites?
+- Does the average ground cover affect soil arthropod diversity across garden sites?
 
--   Does the average ground cover affect soil health properties across garden sites?
+- Does the average ground cover affect soil health properties across garden sites?
 
 *Ground Cover and Soil Health*
 
--   Does the average ground cover affect soil inorganic nitrogen content across garden sites?
+- Does the average ground cover affect soil inorganic nitrogen content across garden sites?
 
--   Does the average ground cover affect the activity of the CBH enzyme across garden sites?
+- Does the average ground cover affect the activity of the CBH enzyme across garden sites?
 
 *Micro-habitat and Soil Arthropods*
 
--   Do the number of different class types (n_class) vary by micro-habitat (garden bed vs pathway) across garden sites?
+- Do the number of different class types (n_class) vary by micro-habitat (garden bed vs pathway) across garden sites?
 
--   Does arthropod abundance (total number of soil arthropods) vary across micro-habitat types?
+- Does arthropod abundance (total number of soil arthropods) vary across micro-habitat types?
 
 #### Ground Cover and Soil Arthropods
 
