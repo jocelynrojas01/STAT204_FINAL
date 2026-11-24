@@ -1,5 +1,5 @@
 ---
-title: "Exploratory Data Analysis"
+title: "Data Cleaning"
 format: html
 editor: visual
 ---
@@ -7,10 +7,10 @@ editor: visual
 ### Loading Data Tables
 
 ```{r}
-landscape_data <- read.csv("garden_landscape.csv")
-local_data <- read.csv("garden_local.csv")
-macro_aps_data <- read.csv("macro_aps.csv")
-soil_data <- read.csv("soil_health.csv")
+landscape_data <- read.csv("data/raw/garden_landscape.csv")
+local_data <- read.csv("data/raw/garden_local.csv")
+macro_aps_data <- read.csv("data/raw/macro_aps.csv")
+soil_data <- read.csv("data/raw/soil_health.csv")
 ```
 
 ### Loading Relevant Packages
@@ -22,20 +22,30 @@ library(tidyverse)
 ### Cleaning and Merging Data Tables
 
 ```{r}
-## to edit the spelling of a few observations in the "class" column in arthropod data sheet
+## to edit the misspelling of a few observations in the "class" column in arthropod data sheet
 macro_aps_data <- macro_aps_data %>%
   mutate(class = recode(class,
                         "Diplopada" = "Diplopoda"))
 
-## merged soil and arthropod data using soil_data file (bc it contains sample_id column)
+## merged soil and arthropod (aps) data 
+## soil_data.csv contained the variable "sample_id"
+## we needed this variable to merge aps data with landscape data later
 soil_aps <- soil_data %>%
   left_join(macro_aps_data, by = "sample_id")
 
-## creates new table with variables of interest 
+## created new table with variables of interest 
 macro_clean <- soil_aps %>%
-  select(sample_id, site, microhabitat, class, order, family, emi_score, juvenile)
+  select(sample_id,
+         site,
+         microhabitat,
+         class,
+         order,
+         family,
+         emi_score,
+         juvenile)
 
-## to check number of unique observations in "class" column
+## checked number of unique observations in "class" column
+## we pulled the unique aps "class" types to clean data furhter 
 unique(macro_aps_data$class)
 
 
@@ -44,10 +54,10 @@ unique(macro_aps_data$class)
 macro_count <- macro_clean %>%
   group_by(sample_id, site, microhabitat) %>%
   filter(class %in% c("Diplopoda", "Insecta", "Malacostraca", "Symphyla", "Chilopoda")) %>%
-  count(class)
+  count(class)    ## creates new variable "n" with count data
 
-## new arthropod data with total number of arthropods per sample
-## and total number of class types per sample
+## new arthropod data with total number of arthropods per sample ("n_total")
+## and total number of class types per sample ("n_class")
 macro_count_2 <- macro_count %>%
   group_by(sample_id) %>%
   summarize(
@@ -69,7 +79,13 @@ landscape_soil_aps <- left_join(soil_aps_clean, landscape_data, by = "site")
 soil <- left_join(local_soil_aps, landscape_data, by = "site")
 ```
 
-### Exploratory Code (data cleaning)
+### Exporting Processed Data
+
+```{r}
+write.csv(soil, file = "data/processed/soil.csv", row.names = FALSE)
+```
+
+### Exploratory Code
 
 ```{r}
 ## avg inorg N values grouped by site and microhabitat (2 observations per garden)

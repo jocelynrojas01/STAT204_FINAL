@@ -24,7 +24,6 @@ soil %>%
 # This makes a bar chart that shows us the percentage of urban land cover surrounding each of the 15 gardens. Forge, MIIS, and Trescony all have 100% urban land cover, while the others indicate that they have some percentage of green space as surrounding land cover.
 ```
 
-
 ```{r}
 # Is there a relationship between percentage of urban land cover and aps count? (looking at total aps count across gardens)
 soil %>% 
@@ -60,9 +59,10 @@ soil %>%
 # It sort of just seems like the inverse of the relationship between urban land cover and aps count, again we have that outlier with 0 green cover and lots of arthropods. 
 ```
 
-* Honestly don't think there's really anything significant in land cover class vs. total aps count per garden, at least just looking across sites. 
+-   Honestly don't think there's really anything significant in land cover class vs. total aps count per garden, at least just looking across sites.
 
 # Is there a relationship between percentage of urban land cover and soil health indicators?
+
 Soil health indicators are ammonium (NH4), nitrate (NO3), and CBH enzyme.
 
 ```{r}
@@ -88,13 +88,11 @@ soil %>%
 # Same kind of spread, not really any super strong relationship
 ```
 
-* Just from this quick EDA, there doesn't seem to be a really strong relationship between percentage of urban land cover and any of the soil health indicators.
+-   Just from this quick EDA, there doesn't seem to be a really strong relationship between percentage of urban land cover and any of the soil health indicators.
 
 # Exploring garden characteristic variables
-* Specifically, herbspp, numtreeshrub, and veght
-herbspp: # of plant species recorded in a sample plot (proxy for plant diversity/richness)
-numtreeshrub: total # of tree and shrub individuals in sample plot (proxy for plant abundance)
-veght: average height (cm) of herbaceous vegetation within a sample plot
+
+-   Specifically, herbspp, numtreeshrub, and veght herbspp: \# of plant species recorded in a sample plot (proxy for plant diversity/richness) numtreeshrub: total \# of tree and shrub individuals in sample plot (proxy for plant abundance) veght: average height (cm) of herbaceous vegetation within a sample plot
 
 ```{r}
 summary(soil$herbspp)
