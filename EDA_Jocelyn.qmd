@@ -5,12 +5,232 @@ editor: visual
 ---
 
 ### Loading Relevant Packages
-```{r}
 
+```{r}
+library(tidyverse)   ## for data cleaning
+library(ggplot2)     ## to make nice plots
+library(glmmTMB)     ## to fit complex mixed effects models
+library(lme4)        ## to fit linear and mixed effects models
 ```
 
 ### Loading Data
+
 ```{r}
+## to convert NAs into zeros in data table
+soil <- read_csv("data/processed/soil.csv") %>%    ## reads in csv file
+  mutate(total = replace_na(total, 0),             ## changes "total" variable
+         n_class = replace_na(n_class, 0))         ## changes "n_class" variable
+
+## to view first couple rows of data
+head(soil)
+```
+
+### Exploratory Data Analysis
+
+**Guiding Questions**:
+
+*Ground Cover and Soil Arthropods*
+
+-   Does ground cover vary across garden sites?
+
+-   Does the average ground cover affect soil arthropod diversity across garden sites?
+
+-   Does the average ground cover affect soil health properties across garden sites?
+
+*Ground Cover and Soil Health*
+
+-   Does the average ground cover affect soil inorganic nitrogen content across garden sites?
+
+-   Does the average ground cover affect the activity of the CBH enzyme across garden sites?
+
+*Micro-habitat and Soil Arthropods*
+
+-   Do the number of different class types (n_class) vary by micro-habitat (garden bed vs pathway) across garden sites?
+
+-   Does arthropod abundance (total number of soil arthropods) vary across micro-habitat types?
+
+#### Ground Cover and Soil Arthropods
+
+*Does ground cover vary across garden sites?*
+
+```{r}
+## percent mulch cover across garden sites
+ggplot(soil, aes(x = site, y = mulch)) +
+  geom_col()
+
+## percent bare soil cover across garden sites
+ggplot(soil, aes(x = site, y = bare)) +
+  geom_col()
+
+## percent litter cover across garden sites
+ggplot(soil, aes(x = site, y = litter)) +
+  geom_col()
+
+## herbaceous cover across sites
+ggplot(soil, aes(x = site, y = herbaceous)) +
+  geom_col()
 
 ```
 
+*Does average ground cover affect soil arthropod richness?*
+
+```{r}
+## new data table with average soil cover and soil arthropods richness/abundance values
+cover_aps <- soil %>%
+  group_by(site) %>%
+  summarize(
+    mean_bare = mean (bare, na.rm = TRUE),
+    mean_herbaceous = mean (bare, na.rm = TRUE),
+    mean_litter = mean (litter, na.rm = TRUE),
+    mean_mulch = mean (mulch, na.rm = TRUE),
+    mean_class = mean (n_class, na.rm = TRUE),
+    mean_total = mean (total, na.rm = TRUE)
+  )
+
+## average mulch and aps richness
+ggplot(cover_aps, aes(x = mean_mulch, y = mean_class)) +
+  geom_point() +
+  geom_text(aes(label = site, vjust = -0.8)) +
+  geom_smooth(method = "lm", se = TRUE)
+
+## average mulch and aps abundance
+ggplot(cover_aps, aes(x = mean_mulch, y = mean_total)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE)
+
+## average bare soil and aps richness
+ggplot(cover_aps, aes(x = mean_bare, y = mean_class)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE)
+
+## average bare soil and aps abundance
+ggplot(cover_aps, aes(x = mean_bare, y = mean_total)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE)
+
+## average litter and aps richness
+ggplot(cover_aps, aes(x = mean_litter, y = mean_class)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE)
+
+## average litter and aps abundance
+ggplot(cover_aps, aes(x = mean_litter, y = mean_total)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE)
+
+```
+
+#### Ground Cover and Soil Health
+
+*Does the average percent **mulch** cover affect soil inorganic nitrogen content across garden sites?*
+
+```{r}
+## new data table with averaged variables of interest
+cover_soil <- soil %>%
+  group_by(site) %>%
+  summarize(
+    mean_bare = mean (bare, na.rm = TRUE),
+    mean_herbaceous = mean (bare, na.rm = TRUE),
+    mean_litter = mean (litter, na.rm = TRUE),
+    mean_mulch = mean (mulch, na.rm = TRUE),
+    mean_no3 = mean (no3_ug_g, na.rm = TRUE),
+    mean_nh4 = mean (nh4_ug_g, na.rm = TRUE),
+    mean_cbh = mean (cbh_mmol_g_h, na.rm = TRUE)
+  )
+
+## exploratory visualizations
+
+## average mulch and inorganic N content
+ggplot(cover_soil, aes(x = mean_mulch, y = mean_nh4)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE)
+
+ggplot(cover_soil, aes(x = mean_mulch, y = mean_no3)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE)
+
+## average bare soil and inorganic N content
+ggplot(cover_soil, aes(x = mean_bare, y = mean_nh4)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE)
+
+ggplot(cover_soil, aes(x = mean_bare, y = mean_no3)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE)
+
+## average litter and inorganic N content
+ggplot(cover_soil, aes(x = mean_litter, y = mean_nh4)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE)
+
+ggplot(cover_soil, aes(x = mean_litter, y = mean_no3)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE)
+```
+
+*Does the average percent **mulch** cover affect the activity of the CBH enzyme across garden sites?*
+
+```{r}
+## average mulch and CBH enzyme
+ggplot(cover_soil, aes(x = mean_mulch, y = mean_cbh)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE)
+
+## average bare soil and CBH enzyme
+ggplot(cover_soil, aes(x = mean_bare, y = mean_cbh)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE)
+
+## average litter and CBH enzyme
+ggplot(cover_soil, aes(x = mean_litter, y = mean_cbh)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE)
+
+## average herbaceous and CBH enzyme
+ggplot(cover_soil, aes(x = mean_herbaceous, y = mean_cbh)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE)
+```
+
+#### Micro-habitat and Soil Arthropods
+
+*Do the number of different class types (n_class) vary by micro-habitat (garden bed vs pathway) across garden sites?*
+
+```{r}
+## bar graph: aps richness across garden sites
+ggplot(soil, aes(x = site, y = n_class, fill = microhabitat)) +
+  geom_col(position = "dodge")
+
+# aps richness and microhabitat by site
+ggplot(soil, aes(x = microhabitat, y = n_class, fill = microhabitat)) +
+  geom_boxplot(alpha = 0.7) +
+  geom_jitter(width = 0.15, alpha = 0.5) +
+  facet_wrap(~site)
+  
+```
+
+*Does arthropod abundance (total number of soil arthropods) vary across micro-habitat types?*
+
+```{r}
+ggplot(soil, aes(x = site, y = total, fill = microhabitat)) +
+  geom_col(position = "dodge")
+```
+
+#### Micro-habitat and Soil Health
+
+*Does soil inorganic nitrogen content (NH4 and NO3) vary by micro-habitat?*
+
+```{r}
+## ammonium (NH4) content 
+ggplot(soil, aes(x = site, y = nh4_ug_g, color = microhabitat)) +
+  geom_boxplot()
+
+## nitrate (NO3) content
+ggplot(soil, aes(x = site, y = no3_ug_g, color = microhabitat)) +
+  geom_boxplot()
+
+## checking distribution
+hist(soil$nh4_ug_g)   ## right skewed
+hist(soil$no3_ug_g)   ## right skewed
+
+```

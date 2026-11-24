@@ -82,7 +82,7 @@ soil <- left_join(local_soil_aps, landscape_data, by = "site")
 ### Exporting Processed Data
 
 ```{r}
-write.csv(soil, file = "data/processed/soil.csv", row.names = FALSE)
+## write.csv(soil, file = "data/processed/soil.csv", row.names = FALSE)
 ```
 
 ### Exploratory Code
