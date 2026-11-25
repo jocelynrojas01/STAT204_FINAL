@@ -4,8 +4,19 @@ format: html
 editor: visual
 ---
 
+
 ```{r}
 library(tidyverse)
+library(ggplot2)     ## to make nice plots
+library(glmmTMB)     ## to fit complex mixed effects models
+library(lme4)        ## to fit linear and mixed effects models
+library(lmerTest)
+```
+
+```{r}
+soil <- read_csv("data/processed/soil.csv") %>%    ## reads in csv file
+  mutate(total = replace_na(total, 0),             ## changes "total" variable
+         n_class = replace_na(n_class, 0))         ## changes "n_class" variable
 ```
 
 # Looking at Land Cover Class Variables
@@ -59,7 +70,7 @@ soil %>%
 # It sort of just seems like the inverse of the relationship between urban land cover and aps count, again we have that outlier with 0 green cover and lots of arthropods. 
 ```
 
--   Honestly don't think there's really anything significant in land cover class vs. total aps count per garden, at least just looking across sites.
+- Honestly don't think there's really anything significant in land cover class vs. total aps count per garden, at least just looking across sites.
 
 # Is there a relationship between percentage of urban land cover and soil health indicators?
 
@@ -88,11 +99,11 @@ soil %>%
 # Same kind of spread, not really any super strong relationship
 ```
 
--   Just from this quick EDA, there doesn't seem to be a really strong relationship between percentage of urban land cover and any of the soil health indicators.
+- Just from this quick EDA, there doesn't seem to be a really strong relationship between percentage of urban land cover and any of the soil health indicators.
 
 # Exploring garden characteristic variables
 
--   Specifically, herbspp, numtreeshrub, and veght herbspp: \# of plant species recorded in a sample plot (proxy for plant diversity/richness) numtreeshrub: total \# of tree and shrub individuals in sample plot (proxy for plant abundance) veght: average height (cm) of herbaceous vegetation within a sample plot
+- Specifically, herbspp, numtreeshrub, and veght herbspp: \# of plant species recorded in a sample plot (proxy for plant diversity/richness) numtreeshrub: total \# of tree and shrub individuals in sample plot (proxy for plant abundance) veght: average height (cm) of herbaceous vegetation within a sample plot
 
 ```{r}
 summary(soil$herbspp)
@@ -100,8 +111,8 @@ soil %>%
     group_by(site) %>%
     summarize(herbspp = first(herbspp)) %>%
     head(., 15) %>%
-    ggplot(., aes(x = herbspp)) + geom_dotplot()
-# The dotplot shows us that most of the garden meaures of herbspp are clustered on the lower half of the distribution, while a few sit with higher values. So a few gardens might be demonstrating higher plant diversity.
+    ggplot(., aes(x = herbspp)) + geom_histogram()
+# The histogram shows us that most of the garden meaures of herbspp are clustered on the lower half of the distribution, while a few sit with higher values. So a few gardens might be demonstrating higher plant diversity.
 
 
 summary(soil$numtreeshrub) # really variable --> it might be that some garden samples had very few plants. Will need to look at the effect of microhabitat as well
@@ -258,4 +269,161 @@ soil %>%
     summarize(garden_apscount = sum(total, na.rm = TRUE),
     veght = first(veght)) %>% 
  {cor(.$veght, .$garden_apscount)} # R = -0.03
+```
+
+# Log Transforming Data 
+Going to log transform variables of interest to see if the spread of variables become less skewed. This would mean using a linear model with a Normal distribution is more plausible. If data still looks really skewed, we can use a different distribution family in the models. 
+
+Variables to log-transform
+Model 1
+* percent of urban land cover vs. total aps count 
+* percent of urban land cover vs. n class count
+* herbspp vs. aps count by garden AND n class count
+* numtreeshrub vs. aps count by garden AND n class count
+
+```{r}
+# log transform URBAN250M variable
+soil %>%
+    group_by(site) %>%
+    summarize(urban250m = first(urban250m)) %>%
+    ggplot(aes(x = log10(urban250m))) + 
+    geom_histogram()
+# Doesn't look Normally distributed, probably needs a different family. skewed left
+
+# log transform HERBSPP variable
+soil %>%
+    group_by(site) %>%
+    summarize(herbspp = first(herbspp)) %>%
+    head(., 15) %>%
+    ggplot(., aes(x = log10(herbspp))) + geom_histogram()
+# density curve looks skewed to the right, but a bit more normal
+
+# log transform NUMTREESHRUB variable
+soil %>%
+    group_by(site) %>%
+    summarize(numtreeshrub = first(numtreeshrub)) %>%
+    head(., 15) %>%
+    ggplot(., aes(x = log10(numtreeshrub))) + geom_histogram()
+# This one looks more normally distributed. Might be best to use this garden characteristic in a linear model
+```
+
+Model 2
+* NH4 vs. total aps count AND n class
+* NO3 vs. total aps count AND n class
+* CBH vs. total aps count AND n class
+
+
+```{r}
+# log transforming NH4
+soil %>%
+    group_by(site) %>%
+    summarize(meanNH4 = mean(nh4_ug_g, na.rm = TRUE)) %>%
+    ggplot(aes(x = log10(meanNH4))) + geom_density()
+# right skewed
+
+# log transforming NO3
+soil %>%
+    group_by(site) %>%
+    summarize(meanNO3 = mean(no3_ug_g, na.rm = TRUE)) %>%
+    ggplot(aes(x = log10(meanNO3))) + geom_density()
+# right skewed but a bit more normal
+
+# log transforming CBH
+soil %>%
+    group_by(site) %>%
+    summarize(meanCBH = mean(cbh_mmol_g_h, na.rm = TRUE)) %>%
+    ggplot(aes(x = log10(meanCBH))) + geom_density()
+# pretty normally distributed 
+```
+
+
+# Modeling Soil Health Indicators Effect on Arthropod Abundance and Richness
+```{r}
+# Create a mixed model looking at the effects of soil health indicators (NH4, NO3, CBH) on arthropod count (abundance). Scaling predictors because CBH has different units
+
+soil_arthct_model <- glmer(total ~ scale(nh4_ug_g) + scale(no3_ug_g) + scale(cbh_mmol_g_h) + (1 | site), data = soil, family = poisson(link = "log"))
+
+summary(soil_arthct_model) # model doesn't suggest that any of these are significant for aps count based on the dataset
+
+# model that includes microhabitat as an interaction term
+soil_arthct_mh_interaction <- glmer(total ~ microhabitat * (scale(nh4_ug_g) + scale(no3_ug_g) + scale(cbh_mmol_g_h)) + (1 | site), data = soil, family = poisson(link = "log"))
+
+summary(soil_arthct_mh_interaction)
+# Main effect of Microhabitat Path
+# possible main effect of CBH?
+# interaction effect between microhabitat and soil health indicators on arthopod count
+```
+
+```{r}
+# Create a mixed model looking at the effects of soil health indicators (NH4, NO3, CBH) on arthropod class count (richness). Site is held at random effect. scaling predictors to standardize
+soil_richness_model <- glmer(n_class ~ scale(nh4_ug_g) + scale(no3_ug_g) + scale(cbh_mmol_g_h) + (1 | site), data = soil, family = poisson(link = "log"))
+
+summary(soil_richness_model)
+# nothing significant
+
+soil_richness_mh_interaction <- glmer(n_class ~ microhabitat * (scale(nh4_ug_g) + scale(no3_ug_g) + scale(cbh_mmol_g_h)) + (1 | site), data = soil, family = poisson(link = "log"))
+
+summary(soil_richness_mh_interaction)
+# nothing significant either here, nothing to suggest soil health indicators or microhabitat have a significant effect on arthropod richness
+```
+
+# Modeling Garden Characteristics Effect on Arthropod Abundance and Richness
+
+```{r}
+## Mixed model looking at the effects of urban land cover, # of plant species, and # of plant individuals on arthropod count (abundance). Site and microhabitat are held at random effect
+
+garden_abundance_model <- glmer(total ~ scale(urban250m) + scale(herbspp) + scale(numtreeshrub) + (1 | site) + (1 | microhabitat), data = soil, family = poisson(link = "log"))
+
+summary(garden_abundance_model)
+# herbspp is potentially significant, but evidence is not strong enough 
+
+# is microhabitat a significant interaction? site is still held random. Scale the predictors because urban250m has different units. 
+garden_ab_mhint_model <- glmer(total ~ microhabitat * (scale(urban250m) + scale(herbspp) + scale(numtreeshrub)) + (1 | site), data = soil, family = poisson(link = "log"))
+
+summary(garden_ab_mhint_model)
+# microhabitat might have an interaction effect on the relationships between urban cover & count, and between herbspp & count. it also has an independent effect like we saw earlier
+
+# is vegetation height a significant interaction? it had some correlation with herbspp
+garden_ab_ht_model <- glmer(total ~ scale(veght) * (scale(urban250m) + scale(herbspp) + scale(numtreeshrub)) + (1 | site), data = soil, family = poisson(link = "log"))
+summary(garden_ab_ht_model)
+# seems to be no significant interaction, very slight significance in interaction with numtreeshrub
+```
+
+```{r}
+## Mixed model looking at the effects of urban land cover, # of plant species, and # of plant individuals on arthropod class count (richness). Site and microhabitat are held at random effect
+
+garden_richness_model <- glmer(n_class ~ scale(urban250m) + scale(herbspp) + scale(numtreeshrub) + (1 | site) + (1 | microhabitat), data = soil, family = poisson(link = "log"))
+
+summary(garden_richness_model)
+# no evidence for significance
+
+# is microhabitat a significant interaction? site is still held random. Scale the predictors because urban250m has different units. 
+garden_rich_mhint_model <- glmer(n_class ~ microhabitat * (scale(urban250m) + scale(herbspp) + scale(numtreeshrub)) + (1 | site), data = soil, family = poisson(link = "log"))
+
+summary(garden_rich_mhint_model)
+# no evidence for significance
+
+# is vegetation height a significant interaction? it had some correlation with herbspp
+garden_rich_ht_model <- glmer(n_class ~ scale(veght) * (scale(urban250m) + scale(herbspp) + scale(numtreeshrub)) + (1 | site), data = soil, family = poisson(link = "log"))
+summary(garden_rich_ht_model)
+# only evidence for an interaction between veg height and numtreeshrub like in the model with abundance
+```
+
+# Checking Residual Plots for Significant Models
+significant models to check plots for:
+- soil_arthct_mh_interaction
+- garden_ab_mhint_model
+
+
+```{r}
+# Running diagnostic plots for soil_arthct_mh_interaction model
+library(DHARMa) # package allows us to simulate residuals using count data which we can't use with the regular diagnostic plots
+simulateResiduals(fittedModel = soil_arthct_mh_interaction, plot = TRUE)
+# Q-Q plot shows that deviation is significant, so this raises concerns about the fit of this data for this model
+```
+
+```{r}
+# Running diagnostic plots for soil_arthct_mh_interaction model
+simulateResiduals(fittedModel = garden_ab_mhint_model, plot = TRUE)
+# deviation really significant
 ```
