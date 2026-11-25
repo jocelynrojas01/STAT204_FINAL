@@ -11,6 +11,7 @@ library(tidyverse)   ## for data cleaning
 library(ggplot2)     ## to make nice plots
 library(glmmTMB)     ## to fit complex mixed effects models
 library(lme4)        ## to fit linear and mixed effects models
+library(DHARMa)      ## for model diagnostics
 ```
 
 ### Loading Data
@@ -25,7 +26,7 @@ soil <- read_csv("data/processed/soil.csv") %>%    ## reads in csv file
 head(soil)
 ```
 
-### Exploratory Data Analysis
+### Exploratory Data Visualizations
 
 **Guiding Questions**:
 
@@ -233,4 +234,143 @@ ggplot(soil, aes(x = site, y = no3_ug_g, color = microhabitat)) +
 hist(soil$nh4_ug_g)   ## right skewed
 hist(soil$no3_ug_g)   ## right skewed
 
+```
+
+### Exploratory Models
+
+#### Models 1-2: Ground Cover and Arthropod Richness and Microhabitat
+
+```{r}
+## model 1: mulch and arthropod richness
+model_1 <- glmer(n_class ~ mulch + microhabitat + (1 | site),
+                 data = soil,
+                 family = poisson())
+
+## print model summary
+summary(model_1)
+
+## model diagnostics
+sim_res_1 <- simulateResiduals(fittedModel = model_1)
+plot(sim_res_1)
+
+## model 2: mulch and arthropod abundance
+model_2 <- glmer(total ~ mulch + microhabitat + (1 | site),
+                 data = soil,
+                 family = poisson())
+
+summary(model_2)
+sim_res_2 <- simulateResiduals(fittedModel = model_2)
+plot(sim_res_2)
+```
+
+#### Models 3-5: Ground Cover and Soil Health and Microhabitat
+
+```{r}
+## model 3: mulch and ammonium (nh4)
+model_3 <- glmmTMB(
+  nh4_ug_g ~ mulch + microhabitat + (1 | site),
+  data = soil,
+  family = tweedie(link = "log"))
+
+summary(model_3)
+sim_res_3 <- simulateResiduals(fittedModel = model_3)
+plot(sim_res_3)
+
+## model 4: mulch and nitrate (no3)
+model_4 <- glmmTMB(
+  no3_ug_g ~ mulch + microhabitat + (1 | site),
+  data = soil,
+  family = tweedie(link = "log"))
+
+summary(model_4)
+sim_res_4 <- simulateResiduals(fittedModel = model_4)
+plot(sim_res_4)
+
+## model 5: mulch and cbh enzyme
+model_5 <- glmmTMB(
+  cbh_mmol_g_h ~ mulch + microhabitat + (1 | site),
+  data = soil,
+  family = Gamma(link = "log"))
+
+summary(model_5)
+sim_res_5 <- simulateResiduals(fittedModel = model_5)
+plot(sim_res_5)
+```
+
+### Plots
+
+#### Plot 1: Average APS Class Count and Mulch
+
+```{r}
+ggplot(cover_aps, aes(x = mean_mulch, y = mean_class)) +
+  geom_smooth(        ## regression line and 95% confidence interval
+    method = "lm",
+    se = TRUE,
+    color = "black",
+    fill = "gray80",
+    linewidth = 0.8) +
+  geom_point(         ## adds garden site observations
+    size = 3,
+    shape = 21,
+    fill = "gray50",
+    color = "black",
+    stroke = 0.6) +
+  geom_text(          ## adds garden site names
+    aes(label = site),
+    vjust = -0.9,
+    size = 3.5) +
+  labs(               ## adds axis labels
+    x = "Mean mulch cover (%)",
+    y = "Mean arthropod class richness",
+    title = NULL) +
+  theme_classic(base_size = 12) +
+  theme(
+    axis.title = element_text(size = 12),
+    axis.text = element_text(color = "black", size = 10),
+    axis.line = element_line(linewidth = 0.6),
+    axis.ticks = element_line(linewidth = 0.6))
+```
+
+#### Plot 2: Average Inorganic Nitrogen Content and Mulch
+
+```{r}
+## used pivot longer to plot nh4 and no3 data in one scatter plot
+cover_soil_long <- cover_soil |>
+  pivot_longer(
+    cols = c(mean_nh4, mean_no3),
+    names_to = "nitrogen_form",
+    values_to = "mean_concentration")
+
+ggplot(cover_soil_long,
+       aes(x = mean_mulch,
+           y = mean_concentration,
+           color = nitrogen_form,
+           fill = nitrogen_form)) +
+  geom_point(size = 2) +
+  geom_smooth(
+    method = "lm",
+    formula = y ~ x,
+    se = TRUE,
+    alpha = 0.15,
+    linewidth = 0.9) +
+  scale_color_manual(
+    values = c("mean_nh4" = "#2878A5",
+               "mean_no3" = "#D17A32"),
+    labels = c("mean_nh4" = expression(NH[4]^"+"),
+               "mean_no3" = expression(NO[3]^"-"))) +
+  scale_fill_manual(
+    values = c("mean_nh4" = "#2878A5",
+               "mean_no3" = "#D17A32"),
+    labels = c("mean_nh4" = expression(NH[4]^"+"),
+               "mean_no3" = expression(NO[3]^"-"))) +
+  labs(
+    x = "Mean mulch cover (%)",
+    y = expression("Mean inorganic nitrogen (" * mu * "g N g"^{-1} * " soil)"),
+    color = "Nitrogen form",
+    fill = "Nitrogen form") +
+  theme_classic(base_size = 12) +
+  theme(
+    legend.position = "top",
+    axis.text = element_text(color = "black"),
+    axis.title = element_text(size = 12))
 ```
