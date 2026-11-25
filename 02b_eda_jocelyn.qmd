@@ -234,7 +234,6 @@ ggplot(soil, aes(x = site, y = no3_ug_g, color = microhabitat)) +
 hist(soil$nh4_ug_g)   ## right skewed
 hist(soil$no3_ug_g)   ## right skewed
 
-<<<<<<< HEAD:02b_eda_jocelyn.qmd
 ```
 
 ### Exploratory Models
@@ -375,6 +374,4 @@ ggplot(cover_soil_long,
     axis.text = element_text(color = "black"),
     axis.title = element_text(size = 12))
 ```
-=======
-```
->>>>>>> 867604df8b348ad88bdfc56330d0ff078464595e:EDA_Jocelyn.qmd
+
